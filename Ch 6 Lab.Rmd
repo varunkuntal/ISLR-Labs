@@ -1,0 +1,382 @@
+---
+title: "Chapter 6: Linear Model Selection & Regularisation"
+output: html_notebook
+---
+Question 8.
+
+part(a)
+```{r}
+set.seed(1)
+require(leaps)
+X=rnorm(100)
+eps=rnorm(100)
+```
+
+part(b)
+```{r}
+Y=33+24*X+15*X^2+6*X^3+eps
+```
+
+part(c)
+```{r}
+reg.fit=regsubsets(Y~poly(X, 10), data=data.frame(Y,X), nvmax=10)
+reg.summary=summary(reg.fit)
+
+cp.min=which.min(reg.summary$cp)
+bic.min=which.min(reg.summary$bic)
+adjr2.max=which.max(reg.summary$adjr2)
+
+cp.coef=coef(reg.fit, cp.min)
+bic.coef=coef(reg.fit, bic.min)
+adjr2.coef=coef(reg.fit, adjr2.max)
+
+par(mfrow=c(3,1))
+plot(reg.summary$cp, xlab="Number of variables", ylab="Cp", type="l")
+points(cp.min, reg.summary$cp[cp.min], col="red", cex=2, pch=20)
+
+
+plot(reg.summary$bic, xlab="Number of variables", ylab="BIC", type="l")
+points(bic.min, reg.summary$bic[bic.min], col="red", cex=2, pch=20)
+
+
+plot(reg.summary$adjr2, xlab="Number of variables", ylab="AdjR2", type="l")
+points(adjr2.max, reg.summary$adjr2[adjr2.max], col="red", cex=2, pch=20)
+
+```
+
+```{r}
+sprintf("Number of coefficients for min value of Cp: %s", cp.min)
+print(coef(reg.fit, cp.min))
+sprintf("Number of coefficients for min value of BIC: %s", bic.min)
+print(coef(reg.fit, bic.min))
+sprintf("Number of coefficients for max value of Adjr2: %s", adjr2.max)
+print(coef(reg.fit, adjr2.max))
+```
+
+
+part(d)
+```{r}
+regfit.fwd=regsubsets(Y~poly(X, 10), data=data.frame(Y,X), nvmax=10, method="forward")
+regfit.summ=summary(regfit.fwd)
+
+cp.min=which.min(regfit.summ$cp)
+bic.min=which.min(regfit.summ$bic)
+adjr2.max=which.max(regfit.summ$adjr2)
+
+cp.coef=coef(regfit.fwd, cp.min)
+bic.coef=coef(regfit.fwd, bic.min)
+adjr2.coef=coef(regfit.fwd, adjr2.max)
+
+par(mfrow=c(3,1))
+plot(regfit.summ$cp, xlab="Number of variables", ylab="Cp", type="l")
+points(cp.min, regfit.summ$cp[cp.min], col="red", cex=2, pch=20)
+
+
+plot(regfit.summ$bic, xlab="Number of variables", ylab="BIC", type="l")
+points(bic.min, regfit.summ$bic[bic.min], col="red", cex=2, pch=20)
+
+
+plot(regfit.summ$adjr2, xlab="Number of variables", ylab="AdjR2", type="l")
+points(adjr2.max, regfit.summ$adjr2[adjr2.max], col="red", cex=2, pch=20)
+```
+
+```{r}
+sprintf("Number of coefficients for min value of Cp: %s", cp.min)
+print(coef(regfit.fwd, cp.min))
+sprintf("Number of coefficients for min value of BIC: %s", bic.min)
+print(coef(regfit.fwd, bic.min))
+sprintf("Number of coefficients for max value of Adjr2: %s", adjr2.max)
+print(coef(regfit.fwd, adjr2.max))
+```
+
+
+```{r}
+regfit.bkd=regsubsets(Y~poly(X, 10), data=data.frame(Y,X), nvmax=10, method="backward")
+regfit.summ=summary(regfit.bkd)
+
+cp.min=which.min(regfit.summ$cp)
+bic.min=which.min(regfit.summ$bic)
+adjr2.max=which.max(regfit.summ$adjr2)
+
+cp.coef=coef(regfit.bkd, cp.min)
+bic.coef=coef(regfit.bkd, bic.min)
+adjr2.coef=coef(regfit.bkd, adjr2.max)
+
+par(mfrow=c(3,1))
+plot(regfit.summ$cp, xlab="Number of variables", ylab="Cp", type="l")
+points(cp.min, regfit.summ$cp[cp.min], col="red", cex=2, pch=20)
+
+
+plot(regfit.summ$bic, xlab="Number of variables", ylab="BIC", type="l")
+points(bic.min, regfit.summ$bic[bic.min], col="red", cex=2, pch=20)
+
+
+plot(regfit.summ$adjr2, xlab="Number of variables", ylab="AdjR2", type="l")
+points(adjr2.max, regfit.summ$adjr2[adjr2.max], col="red", cex=2, pch=20)
+```
+
+
+```{r}
+sprintf("Number of coefficients for min value of Cp: %s", cp.min)
+print(coef(regfit.bkd, cp.min))
+sprintf("Number of coefficients for min value of BIC: %s", bic.min)
+print(coef(regfit.bkd, bic.min))
+sprintf("Number of coefficients for max value of Adjr2: %s", adjr2.max)
+print(coef(regfit.bkd, adjr2.max))
+```
+
+CONCLUSION: Best subset, Forward, Backward subset selection all resulted in same subsets.
+
+
+part(e)
+```{r}
+x.mod=model.matrix(Y~poly(X, 10, raw=T), data=data.frame(Y,X))[,-1]
+cv.out=cv.glmnet(x.mod, Y, alpha=1)
+plot(cv.out)
+```
+
+part(f)
+```{r}
+regfit.full=regsubsets(Y2~poly(X, 10, raw=T), data=data.frame(Y2,X))
+regsum=summary(regfit.full)
+cp.min=which.min(regsum$cp)
+bic.min=which.min(regsum$bic)
+adjr2.max=which.max(regsum$adjr2)
+
+par(mfrow=(c(3,1)))
+plot(regsum$cp, xlab="Number of Poly(X)", ylab="Best Subset Cp", type="l")
+points(cp.min, regsum$cp[cp.min], col="red", pch=4, lwd=5)
+
+plot(regsum$bic, xlab="Number of Poly(X)", ylab="Best Subset Bic", type="l")
+points(bic.min, regsum$bic[bic.min], col="red", pch=4, lwd=5)
+
+plot(regsum$adjr2, xlab="Number of Poly(X)", ylab="Best Subset Adjusted R^2", type="l")
+points(adjr2.max, regsum$adjr2[adjr2.max], col="red", pch=4, lwd=5)
+
+```
+
+```{r}
+coef(regfit.full, 2)
+coef(regfit.full, 1)
+coef(regfit.full, 4)
+```
+
+
+```{r}
+x.m=model.matrix(Y2~poly(X, 10, raw=T))[,-1]
+cv.out=cv.glmnet(x.m, Y2, alpha=1)
+plot(cv.out)
+```
+
+
+```{r}
+predict(cv.out, cv.out$lambda.min, type="coefficients")
+```
+
+Lasso and best subset (least BIC) are equal.
+
+
+Question 9.
+```{r}
+set.seed(1)
+require(leaps)
+train=sample(1:nrow(College), nrow(College)/2)
+train.C=College[train,]
+test.C=College[-train,]
+
+lm.fit=lm(Apps~., data=train.C)
+lm.error=mean((lm.pred-test.C[,"Apps"])^2)
+lm.error
+
+```
+
+```{r}
+xmat.train=model.matrix(Apps~., data=train.C)[,-1]
+xmat.test=model.matrix(Apps~., data=test.C)[,-1]
+ridge.train=cv.glmnet(xmat.train, train.C$Apps, alpha=0)
+min.trainlam=ridge.train$lambda.min
+ridge.pred=predict(ridge.train, s=min.trainlam, newx=xmat.test)
+ridge.mse=mean((ridge.pred-test.C$Apps)^2)
+ridge.mse
+```
+
+
+```{r}
+lasso.mod=cv.glmnet(xmat.train, train.C$Apps, alpha=1)
+min.lambda=lasso.mod$lambda.min
+lasso.pred=predict(lasso.mod, s=min.lambda, newx=xmat.test)
+lasso.mse=mean((lasso.pred-test.C$Apps)^2)
+lasso.mse
+```
+
+```{r}
+lasso.coef=predict(lasso.mod, type="coefficients", s=min.lambda)
+lasso.coef
+```
+
+
+part(e)
+```{r}
+set.seed(1)
+library(pls)
+pcr.fit=pcr(Apps~., data=train.C, scale=TRUE, validation="CV")
+validationplot(pcr.fit, val.type="MSEP")
+```
+
+```{r}
+pcr.pred=predict(pcr.fit, test.C, ncomp=17)
+err.pcr=mean((test.C$Apps-pcr.pred)^2)
+err.pcr
+```
+
+```{r}
+pls.fit=plsr(Apps~., data=train.C, scale=TRUE, validation="CV")
+validationplot(pls.fit, val.type="RMSEP")
+```
+
+```{r}
+pls.pred=predict(pls.fit, test.C, ncomp=6)
+err.pls=mean((test.C$Apps-pls.pred)^2)
+err.pls
+```
+
+```{r}
+errors=c(err.pls, err.pcr, lasso.mse, ridge.mse, lm.error)
+names(errors)=c("pls", "pcr", "lasso", "ridge", "lm")
+barplot(errors)
+```
+
+Test errors are not very much different. ridge and pls seems to be slightly better than the linear model.
+
+
+Question 10.
+part(a)
+```{r}
+set.seed(1)
+require(leaps)
+eps=rnorm(1000)
+xmat=matrix(rnorm(1000*20), ncol=20)
+beta=sample(-5:5, 20, replace=TRUE)
+beta[c(3, 7, 12,15, 19)] =0
+y=xmat %*% beta + eps
+```
+
+part(b)
+```{r}
+train=sample(1:1000, 100)
+train.x=xmat[train,]
+test.x=xmat[-train,]
+train.y=y[train]
+test.y=y[-train]
+```
+
+
+```{r}
+set.seed(1)
+par(mfrow=c(1,1))
+regfit.full=regsubsets(train.y~., data=data.frame(train.y, train.x), nvmax=20)
+plot(regfit.full$rss, type="l", lwd=2, xlab="Number of predictors", ylab="RSS")
+```
+
+part(d)
+```{r}
+val.errors=rep(NA, 20)
+test.mat=model.matrix(test.y~., data=data.frame(test.y, test.x))
+for (i in 1:20){
+  coefi=coef(regfit.full, id=i)
+  pred=test.mat[,names(coefi)]%*%coefi
+  val.errors[i]= mean((test.y-pred)^2)
+}
+val.errors
+```
+
+part(e)
+```{r}
+plot(val.errors, type="l", lwd=2, xlab="Number of predictors", ylab="RSS")
+points(which.min(val.errors), val.errors[which.min(val.errors)], col="red", pch=20, cex=2)
+```
+
+part(f)
+```{r}
+names(beta)=paste0("X", 1:20)
+
+```
+
+
+```{r}
+sprintf("Minimum RSS model size is: %s and the coefficients are: ", which.min(val.errors))
+coef=coef(regfit.full, which.min(val.errors))
+coef
+```
+
+
+
+In comparison to the full model of 20 predictors, best test set RSS model contains 15 variables.
+There is a slight deviation from the original beta values in predicted model.
+
+part(g)
+```{r}
+xmt=model.matrix(y~xmat, data=data.frame(y, xmat))
+for (i in 1:20){
+  coefi=coef(regfit.full, id=i)
+  
+```
+
+```{r}
+r_form=rep(0, 20)
+names(beta)=paste0("X", 1:20)
+for (i in 1:20){
+  coefi=coef(regfit.full, i)
+  comp_coef=merge(data.frame(betas=names(beta), beta), data.frame(betas=names(coefi), coefi), all.x=T, sort=F)
+  comp_coef[is.na(comp_coef[,3]),3]=0
+  r_form[i]=sqrt(sum((comp_coef[,3]-comp_coef[,2])^2))
+#  for (j in 1:i){
+#    r_form[i]=r_form[i]+sum((comp_coef[,2][j]-comp_coef[,3][j])^2)
+#  }
+#  r_form[i]=sqrt(r_form[i])
+}
+plot(1:20, r_form, type="l", lwd=2, xlab="Number of predictions", ylab="Coefficient Error")
+points(which.min(r_form), r_form[which.min(r_form)], col="red", pch=16)
+
+```
+
+
+The plot is similiar to the one we obtained in (d)
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,344 @@
+---
+title: "Ch 8: Basics of Decision Trees"
+output: html_notebook
+---
+
+Question(7)
+```{r}
+train.rff=function(mtry=6, ntree=25, dataset=Boston, pred_var="medv"){
+  train=sample(1:nrow(dataset), nrow(dataset)/2)
+  train.rf=randomForest(medv~., data=dataset, subset=train, mtry=mtry, ntree=ntree)
+  preds=predict(train.rf, newdata=dataset[-train,])
+  mse=mean((preds - dataset[-train, pred_var])^2)
+  return(mse)
+}
+
+library(tree)
+mtrys=1:13
+ntrees=seq(25, 600, 25)
+mse_grid=matrix(rep(0, length(mtrys)*length(ntrees)), nrow=length(mtrys), ncol=length(ntrees))
+
+for (i in 1:length(mtrys)){
+  for (j in 1:length(ntrees)){
+    mse_grid[i, j] = train.rff(mtrys[i], ntrees[j])
+  }
+}
+
+```
+
+```{r}
+cols=rainbow(max(mtrys))
+plot(ntrees, mse_grid[1,], col=cols[1], type="l", ylim=c(5, 40), ylab="Hold out test error", xlab="ntrees", lty=1)
+lines(ntrees, mse_grid[2,], col=cols[2], lty=1)
+lines(ntrees, mse_grid[3,], col=cols[3], lty=2)
+lines(ntrees, mse_grid[4,], col=cols[4], lty=1)
+lines(ntrees, mse_grid[5,], col=cols[5], lty=2)
+lines(ntrees, mse_grid[6,], col=cols[6], lty=1)
+lines(ntrees, mse_grid[7,], col=cols[7], lty=2)
+lines(ntrees, mse_grid[8,], col=cols[8], lty=1)
+lines(ntrees, mse_grid[9,], col=cols[9], lty=2)
+lines(ntrees, mse_grid[10,], col=cols[10], lty=1)
+lines(ntrees, mse_grid[11,], col=cols[11], lty=2)
+lines(ntrees, mse_grid[12,], col=cols[12], lty=1)
+lines(ntrees, mse_grid[13,], col=cols[13], lty=2)
+
+```
+
+
+Question(8)
+part(a)
+```{r}
+library(ISLR)
+library(tree)
+attach(Carseats)
+set.seed(15)
+
+High = ifelse(Sales > mean(Sales), "Yes", "No")
+Carseats = data.frame(Carseats, High)
+train = sample(1:nrow(Carseats), dim(Carseats)[1]/2)
+t.trees = tree(High~., data=Carseats[, -1], subset=train)
+summary(t.trees)
+```
+
+```{r}
+preds = predict(t.trees, newdata=Carseats[-train, -1], type="class")
+table(High[-train], preds)
+```
+
+```{r}
+(78+58)/(78+58+35+29)
+```
+
+
+
+```{r}
+plot(t.trees)
+text(t.trees, pretty=0)
+```
+
+```{r}
+q.tree = tree(Sales~., data=Carseats[, -length(Carseats)], subset=train)
+summary(q.tree)
+```
+
+```{r}
+preds=predict(q.tree, newdata=Carseats[-train, -length(Carseats)])
+mse=mean((preds - Carseats[-train, "Sales"])^2)
+mse
+```
+
+```{r}
+cv.carseats = cv.tree(t.trees, FUN=prune.misclass)
+cv.carseats
+```
+
+```{r}
+par(mfrow=c(1,2))
+plot(cv.carseats$size, cv.carseats$dev, type="b")
+plot(cv.carseats$k, cv.carseats$dev, type="b")
+```
+
+tree size of 7 seems to be an optimal fit, but also tree size 4 seems to give better returns.
+
+```{r}
+prune.tree = prune.misclass(t.trees, best=4)
+plot(prune.tree)
+text(prune.tree, pretty=0)
+```
+
+```{r}
+prune.preds = predict(prune.tree, Carseats[-train, -1], type="class")
+table(prune.preds, Carseats[-train, "High"])
+```
+
+```{r}
+(87+52)/(87+52+26+35)
+```
+
+part(d)
+```{r}
+library(randomForest)
+bagging.tree = randomForest(High~., data=Carseats[, -1], subset=train, mtry=length(dim(Carseats)[2]-1), importance=TRUE, ntree=100)
+bagging.tree
+```
+
+```{r}
+preds = predict(bagging.tree, newdata=Carseats[-train, -1], type="class")
+table(preds, Carseats[-train, "High"])
+```
+
+```{r}
+(82+62)/(82+62+47+9)
+```
+
+```{r}
+importance(bagging.tree)
+```
+
+```{r}
+mse=rep(0, length(2:11))
+for (mtrys in 2:11){
+  tree.rf = randomForest(Sales~., data=Carseats[, -12], subset=train, mtry=mtrys, ntree=100, importance=T)
+  preds = predict(tree.rf, newdata=Carseats[-train, -12])
+  mse[mtrys-1] = mean((preds-Carseats[-train, "Sales"])^2)
+}
+
+plot(2:11, mse, type="b", xlab="mtry values")
+```
+
+The least mse obtained at no. of variables = 7 as calculated earlier.
+
+
+Question(9)
+part(a)
+```{r}
+train=sample(1:nrow(OJ), 800)
+OJ.train=OJ[train,]
+OJ.test=OJ[-train,]
+```
+
+
+part(b)
+```{r}
+library(tree)
+tree.fit=tree(Purchase~., data=OJ, subset=train)
+summary(tree.fit)
+```
+
+LoyalCH & PriceDiff are the variables used in tree contruction
+Training Error Rate: 14.75%
+Number of Terminal Nodes: 9
+
+part(C)
+```{r}
+tree.fit
+```
+
+Let's pick up node 10). A * at the end tells us this is a terminal node. Splitting variable is PriceDiff and the splitting value is 0.05. There are 72 values in this node region with a deviance of 64.88. 16.67% values of this node have CH as value of sales while 83.33% have value MM as Sales.
+
+```{r}
+plot(tree.fit)
+text(tree.fit)
+```
+
+LoyalCH is so important that it is used in the top 3 nodes. If the LoyalCH < 0.279, customer conclusively buys MM, If LoyalCH > 0.7056, customer surely buys CH. FOr intermediate values of LoyalCH, the decision is furthur broken down by PriceDiff & LoyalCH.
+
+part(e)
+```{r}
+preds=predict(tree.fit, newdata=OJ[-train, ], type="class")
+table(preds, OJ[-train, "Purchase"])
+```
+
+Error Rate = (21+35)/270 = 0.2074 ~ 20.7%
+
+part(f)
+```{r}
+cv.cross=cv.tree(tree.fit, FUN=prune.misclass)
+table(cv.cross$size, cv.cross$dev)
+```
+
+
+part(g)
+```{r}
+plot(cv.cross$size, cv.cross$dev, type="b", xlab="Size of Tree", ylab="Deviance")
+```
+
+part(h)
+
+Tree size of 7 gives lowest deviance.
+
+part(i) & (j)
+```{r}
+prune.tree=prune.misclass(tree.fit, best=7)
+summary(prune.tree)
+```
+
+Pruned tree has higher misclassification error rate (15.25% > 14.75%) however difference is not much.
+
+
+part(k)
+```{r}
+preds=predict(prune.tree, newdata=OJ[-train,], type="class")
+table(preds, OJ[-train, "Purchase"])
+```
+
+Misclassification test error rate=(36+20)/270=0.2074. This is exactly same as unpruned tree so in this case there is no benefit of pruning as opposed to the notion that pruned tree give lower misclassification test error rate.
+
+
+Question(10)
+part(a)
+```{r}
+library(ISLR)
+attach(Hitters)
+Hitters=data.frame(Hitters, log(Salary))
+Hitters=na.omit(Hitters)
+
+```
+
+part(b, c & d)
+```{r}
+library(gbm)
+set.seed(1)
+train=1:200
+pows=seq(-10, -2, 0.1)
+lambda=10^pows
+train.err=rep(0, length(lambda))
+test.err=rep(0, length(lambda))
+
+for (i in 1:length(lambda)){
+  boost.Hit=gbm(Salary~., data=Hitters[train,], distribution="gaussian", shrinkage=lambda[i], n.trees=1000)
+  train.preds=predict(boost.Hit, Hitters[train,], n.trees=1000)
+  test.preds=predict(boost.Hit, Hitters[-train,], n.trees=1000)
+  train.err[i]=mean((train.preds-Hitters[train, "Salary"])^2)
+  test.err[i]=mean((test.preds-Hitters[-train, "Salary"])^2)
+}
+par(mfrow=c(1,2))
+plot(lambda, train.err, type="b", col="blue", pch=20)
+plot(lambda, test.err, type="b", col="red", pch=20)
+
+```
+
+```{r}
+print(min(test.err))
+print(lambda[which.min(test.err)])
+```
+
+Test set MSE is lowest for lambda of 0.003981 and value is 4106
+
+```{r}
+lm.fit=lm(Salary~., data=Hitters, subset=train)
+preds=predict(lm.fit, Hitters[-train,])
+mean((preds-Hitters[-train, "Salary"])^2)
+```
+
+```{r}
+library(glmnet)
+x=model.matrix(Salary~., data=Hitters[train,])
+y=Hitters[train, "Salary"]
+x.test=model.matrix(Salary~., data=Hitters[-train,])
+lasso.fit=glmnet(x,y, alpha=1)
+lasso.preds=predict(lasso.fit, s=0.01, newx=x.test)
+mse=mean((lasso.preds-Hitters[-train, "Salary"])^2)
+mse
+```
+
+As we can see, boosting MSE (4106) is way lower than linear regression MSE (25671) and lasso MSE (25548)
+
+
+part(f)
+```{r}
+library(kableExtra)
+boost.best=gbm(Salary~., data=Hitters[train, -21], distribution="gaussian", shrinkage=lambda[which.min(test.err)], n.trees=1000)
+kable(summary(boost.best), rownames=F)
+```
+
+part(g)
+```{r}
+bag.Hitters=randomForest(Salary~., data=Hitters[train, -21], mtry=19, ntrees=1000)
+preds=predict(bag.Hitters, newdata=Hitters[-train,])
+mse=mean((preds-Hitters[-train, "Salary"])^2)
+mse
+```
+
+Test set MSE is 52795.
+
+Question(11)
+part(a,b)
+```{r}
+library(gbm)
+train=1:200
+Caravan=data.frame(Caravan, PurchaseBin=ifelse(Caravan$Purchase=="Yes", 1,0))
+Caravan=Caravan[, c(-86)]
+attach(Caravan)
+set.seed(1)
+boost.Caravan=gbm(PurchaseBin~., data=Caravan[train,], distribution="bernoulli", n.trees=1000, shrinkage=0.01)
+summary(boost.Caravan)
+```
+
+Most important predictors are MGODPR, MAUTI, MINK123M, MOSTYPE, MGODGE, MOPLLAAG, MBERARBG
+
+part(c)
+```{r}
+preds=predict(boost.Caravan, newdata=Caravan[-train,], n.trees=1000, type="response")
+Purchase20=ifelse(preds>0.2, 1, 0)
+table(Caravan[-train, "PurchaseBin"], Purchase20)
+```
+
+Percentage of people predicted to make purchase actually making one = 46/(46+446) = 9.34%
+
+```{r}
+library(glm)
+glm.fit=glm(PurchaseBin~., data=Caravan[train,], family="binomial")
+glm.preds=predict(glm.fit, newdata=Caravan[-train,], type="response")
+glm.preds=ifelse(glm.preds>0.2, 1,0)
+table(glm.preds, Caravan[-train, "PurchaseBin"])
+```
+
+Percentage of people predicted to make purchase actually making one = 77/(77+260) = 22.84%
+
+
+
+
+
+
+

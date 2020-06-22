@@ -1,0 +1,447 @@
+---
+title: "Ch 7: Moving Beyond Linearity"
+output: html_notebook
+---
+
+Question 6.
+
+part(a)
+```{r}
+library(ISLR)
+attach(Wage)
+library(boot)
+err=rep(0, 10)
+for (i in 1:10){
+  fit=glm(wage~poly(age, i), data=Wage)
+  err[i]=cv.glm(Wage, fit, K=10)$delta[1]
+}
+plot(err, type="b")
+```
+
+```{r}
+fit1=lm(wage~age, data=Wage)
+fit2=lm(wage~poly(age, 2), data=Wage)
+fit3=lm(wage~poly(age, 3), data=Wage)
+fit4=lm(wage~poly(age, 4), data=Wage)
+fit5=lm(wage~poly(age, 5), data=Wage)
+fit6=lm(wage~poly(age, 6), data=Wage)
+fit7=lm(wage~poly(age, 7), data=Wage)
+fit8=lm(wage~poly(age, 8), data=Wage)
+fit9=lm(wage~poly(age, 9), data=Wage)
+fit10=lm(wage~poly(age, 10), data=Wage)
+anova(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10)
+```
+
+```{r}
+age.grid=seq(min(age), max(age))
+preds=predict(fit4, newdata=list(age=age.grid), se=TRUE)
+se.bands=cbind(preds$fit+2*preds$se.fit, preds$fit-2*preds$se.fit)
+par(mfrow=c(1,1), mar=c(4.5,4.5,1,1), oma=c(0,0,4,0))
+plot(age, wage, xlim=range(age), cex=0.5, col="darkgrey")
+title("Degree 4 polynomial fit", outer=TRUE)
+lines(age.grid, preds$fit, lwd=2, col="blue")
+matlines(age.grid, se.bands, lwd=1, lty=3, col="blue")
+```
+
+part(b)
+```{r}
+err=rep(0, 9)
+for (i in 2:10){
+  Wage$age.cut=cut(Wage$age, i)
+  fit=glm(wage~age.cut, data=Wage)
+  err[i-1]=cv.glm(Wage, fit, K=10)$delta[1]
+}
+err
+```
+
+
+```{r}
+plot(2:10, err, type="b")
+```
+
+```{r}
+cut.fit=glm(wage~cut(age, 8), data=Wage)
+preds=predict(cut.fit, newdata=list(age=age.grid), se=T)
+se.bands=cbind(preds$fit + 2*preds$se.fit, preds$fit -2*preds$se.fit)
+plot(age, wage, xlim=range(age), cex=0.5, col="darkgrey")
+title("Fit with 8 cuts")
+lines(age.grid, preds$fit, lwd=2, col="blue")
+matlines(se.bands, lwd=1, lty=3, col="blue")
+```
+
+
+Question 7.
+```{r}
+plot(maritl, wage)
+```
+
+Married people in general have higher wages although this could also be due to the age factor.
+
+```{r}
+plot(jobclass, wage)
+```
+
+People with job type as information have higher median salaries.
+
+```{r}
+require(gam)
+gam.fit1=gam(wage~ns(age, 4), data=Wage)
+gam.fit2=gam(wage~ns(age, 4)+maritl, data=Wage)
+gam.fit3=gam(wage~ns(age, 4)+jobclass, data=Wage)
+gam.fit4=gam(wage~ns(age, 4)+maritl+jobclass, data=Wage)
+anova(gam.fit1,gam.fit3,gam.fit4)
+```
+
+marital and jobclass, both significant individually in presence of age and their synergical effect is also significant.
+
+
+```{r}
+par(mfrow=c(1,3))
+plot(gam.fit4, se=T, col="blue")
+```
+
+
+Question(8)
+```{r}
+err.horse=rep(0, 10)
+err.disp=rep(0, 10)
+err.weight=rep(0, 10)
+err.cyl=rep(0,10)
+err.all=rep(0,10)
+for (i in 1:10){
+  glm.fit=glm(mpg~poly(horsepower, i), data=Auto)
+  err.horse[i]=cv.glm(Auto, glm.fit, K=10)$delta[1]
+      
+  glm.fit=glm(mpg~poly(displacement, i), data=Auto)
+  err.disp[i]=cv.glm(Auto, glm.fit, K=10)$delta[1]
+      
+  glm.fit=glm(mpg~poly(weight, i), data=Auto)
+  err.weight[i]=cv.glm(Auto, glm.fit, K=10)$delta[1]
+  
+  glm.fit=glm(mpg~poly(weight, i)+cylinders, data=Auto)
+  err.cyl[i]=cv.glm(Auto, glm.fit, K=10)$delta[1]
+  
+  glm.fit=glm(mpg~poly(weight, i) + poly(displacement, i) + poly(horsepower, i) + cylinders, data=Auto)
+  err.all[i]=cv.glm(Auto, glm.fit, K=10)$delta[1]
+}
+par(mfrow=c(3,2))
+plot(err.horse, type="b")
+plot(err.disp, type="b")
+plot(err.weight, type="b")
+plot(err.cyl, type="b")
+plot(err.all, type="b")
+```
+
+power of 2 seems fine for all predictors except displacement where best value is around 9-10. 
+
+```{r}
+gam.fit1=gam(mpg~poly(horsepower, 2), data=Auto)
+gam.fit2=gam(mpg~poly(displacement, 2), data=Auto)
+gam.fit3=gam(mpg~poly(weight, 2), data=Auto)
+gam.fit4=gam(mpg~poly(weight, 2)+cylinders, data=Auto)
+gam.fit5=gam(mpg~poly(weight, 2) + poly(displacement, 2) + poly(horsepower, 2) + cylinders, data=Auto)
+anova(gam.fit1, gam.fit2, gam.fit3, gam.fit4, gam.fit5)
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(gam.fit5, se=TRUE, col="blue")
+```
+
+Question 9.
+
+```{r}
+require(Mass)
+lm.fit=lm(nox~poly(dis, 3), data=Boston)
+dis.range=range(dis)
+dis.grid=seq(dis.range[1], dis.range[2], 0.1)
+preds=predict(lm.fit, newdata=list(dis=dis.grid), se=TRUE)
+se.preds=preds$fit+cbind(2*preds$se.fit, -2*preds$se.fit)
+par(mfrow=c(1,1), mar=c(4.5,4.5,1,1), oma=c(0,0,1,0))
+plot(Boston$dis, Boston$nox, cex=0.5, col="darkgrey")
+title("Degree 3 polynomial fit")
+lines(dis.grid, preds$fit, lwd=2, col="blue")
+matlines(dis.grid, se.preds, lwd=1, lty=3, col="blue")
+```
+
+part(b)
+```{r}
+err=rep(0, 10)
+for (i in 1:10){
+  lm.fit=lm(nox~poly(dis, i), data=Boston)
+  err[i]=sum(lm.fit$residuals^2)
+}
+plot(err, type="b")
+```
+
+```{r}
+err
+```
+
+part(c)
+```{r}
+require(boot)
+set.seed(1)
+cv.err=rep(0, 10)
+for (i in 1:10){
+  glm.fit=glm(nox~poly(dis, i), data=Boston)
+  cv.err[i]=cv.glm(Boston, glm.fit, K=10)$delta[1]
+}
+cv.err
+```
+
+```{r}
+plot(cv.err, type="b")
+```
+
+Best optimal fit is given by 4 degree polynomial whereas 7 and 9 degree polynomial go wild with cross validation error.
+
+part(d)
+```{r}
+dis.range=range(dis)
+dis.seq=seq(dis.range[1], dis.range[2])
+lm.fit=lm(nox~bs(dis, df=4), data=Boston)
+preds=predict(lm.fit, newdata=list(dis=dis.seq), se=T)
+dis.bands=preds$fit+cbind(2*preds$se.fit, -2*preds$se.fit)
+plot(Boston$dis, Boston$nox, col="grey")
+lines(dis.seq, preds$fit, lwd=2, col="blue")
+matlines(dis.seq, dis.bands, lty=3, lwd=1, col="blue")
+```
+
+```{r}
+attr(bs(dis, 4), "knots")
+```
+
+df=4 means only one knot taken by bs() at 50%
+
+part(e)
+```{r}
+rss.error=rep(0, 7)
+for (i in 4:10){
+  lm.fit=lm(nox~bs(dis, i), data=Boston)
+  rss.error[i-3]=sum(lm.fit$residuals^2)
+}
+rss.error
+```
+
+
+```{r}
+plot(4:10, rss.error, type="b")
+```
+
+df = 8 or 10 seems to get lowest residual sum of squares
+
+part(f)
+```{r}
+cv.error=rep(0, 7)
+for (i in 4:10){
+  glm.fit=glm(nox~bs(dis, i), data=Boston)
+  cv.error[i-3]=cv.glm(Boston, glm.fit, K=10)$delta[1]
+}
+cv.error
+```
+
+```{r}
+plot(4:10, cv.error, type="b")
+```
+
+Best df=5 for lowest cross validation error with K=10
+
+Question 10.
+
+```{r}
+set.seed(1)
+library(ISLR)
+library(leaps)
+train=sample(1:nrow(College), nrow(College)/2)
+test=-train
+train.C=College[train,]
+test.C=College[test,]
+
+fit.fwd=regsubsets(Outstate~., data=train.C, nvmax=ncol(College)-1)
+summary(fit.fwd)
+```
+
+```{r}
+predict.regsubsets = function(object, newdata, id, ...){
+  form=as.formula(object$call[[2]])
+  mat=model.matrix(form, newdata)
+  coefi=coef(object, id)
+  xvars=names(coefi)
+  mat[,xvars]%*%coefi
+}
+
+err.fwd=rep(0, ncol(College)-1)
+for (i in 1:(ncol(College)-1)){
+  preds=predict(fit.fwd, test.C, id=i)
+  err.fwd[i]= mean((test.C$Outstate - preds)^2)
+}
+
+fwd.summary=summary(fit.fwd)
+par(mfrow=c(2,2))
+min.mse=which.min(err.fwd)
+plot(err.fwd, type="b", main="Test MSE", xlab="Number of predictors")
+points(min.mse, err.fwd[min.mse], col="red", pch=3, lwd=2)
+
+max.adjr2=which.max(fwd.summary$adjr2)
+plot(fwd.summary$adjr2, type="b", main="Adjusted R^2", xlab="Number of predictors")
+points(max.adjr2, fwd.summary$adjr2[max.adjr2], col="red", pch=3, lwd=2)
+
+min.cp=which.min(fwd.summary$cp)
+plot(fwd.summary$cp, type="b", main="Cp statistic", xlab="Number of prredictors")
+points(min.cp, fwd.summary$cp[min.cp], col="red", pch=3, lwd=2)
+
+min.bic=which.min(fwd.summary$bic)
+plot(fwd.summary$bic, type="b", main="BIC statistic", xlab="Number of prredictors")
+points(min.bic, fwd.summary$bic[min.bic], col="red", pch=3, lwd=2)
+
+```
+
+The best 6 predictors after which errors hardly go down.
+```{r}
+coef(fit.fwd, 6)
+```
+
+part(b)
+```{r}
+require(gam)
+gam.fit=gam(Outstate~Private+poly(Room.Board, 3)+poly(Terminal,3)+poly(perc.alumni, 3)+poly(Expend, 3)+poly(Grad.Rate,3), data=train.C)
+par(mfrow=c(2,3))
+plot(gam.fit, se=T, col="blue")
+```
+
+part(c)
+```{r}
+preds=predict(gam.fit, newdata=test.C)
+mse=mean((test.C$Outstate-preds)^2)
+mse
+```
+
+```{r}
+err.fwd[6]
+```
+The MSE and the error from regsubsets are quite close however MSE is lower.
+
+```{r}
+summary(gam.fit)
+```
+
+Strong non-linear evidences for predictors like Room.Board, Terminal, perc.alumni,
+Expend, Grad.Rate
+
+
+Question 11.
+part(a) and part(b)
+```{r}
+set.seed(1)
+x1=rnorm(100)
+x2=rnorm(100)
+beta_0=2.4
+beta_1=-3.3
+beta_2=4.2
+eps=rnorm(100, sd=1)
+y=beta_0+beta_1*x1+beta_2*x2+eps
+plot(y)
+
+```
+
+part(c)
+```{r}
+a=y-beta_1*x1
+beta_2=lm(a~x2)$coef[2]
+
+```
+
+part(d)
+```{r}
+a=y-beta_2*x2
+beta_1=lm(a~x1)$coef[2]
+```
+
+
+part(e)
+```{r}
+beta1_val=rep(0, 1001)
+beta2_val=rep(0, 1000)
+beta0_val=rep(0, 1000)
+for (i in 1:1000){
+  a=y-beta1_val[i]*x1
+  beta2_val[i]=lm(a~x2)$coef[2]
+  
+  a=y-beta2_val[i]*x2
+  beta0_val[i]=lm(a~x1)$coef[1]
+  beta1_val[i+1]=lm(a~x1)$coef[2]
+}
+
+```
+
+
+```{r}
+plot(1:1000, beta0_val, type="l", xlab="iteration", ylab="beta", ylim=c(-5,5), col="green")
+lines(1:1000, beta1_val[-1], col="red")
+lines(1:1000, beta2_val, col="blue")
+legend("center", c("beta0", "beta1", "beta2"), col=c("green", "red", "blue"), lty=1)
+```
+
+part(f)
+```{r}
+lm.fit=lm(y~x1+x2)
+plot(1:1000, beta0_val, type="l", xlab="iteration", ylab="beta", ylim=c(-5,5), col="green")
+lines(1:1000, beta1_val[-1], col="red")
+lines(1:1000, beta2_val, col="red")
+abline(h=lm.fit$coef[1], lty="dashed", lwd=3, col=rgb(0,0,0,alpha=0.4))
+abline(h=lm.fit$coef[2], lty="dashed", lwd=3, col=rgb(0,0,0,alpha=0.4))
+abline(h=lm.fit$coef[3], lty="dashed", lwd=3, col=rgb(0,0,0,alpha=0.4))
+legend("center", c("beta0", "beta1", "beta2", "multiple regression"), col=c("green", "red", "blue", "black"), lty=c(1, 1, 1, 2))
+```
+
+part(g)
+For linear dependence of Y on X, one backfitting iteration is enough to get best estimates for coefficients.
+
+
+12. 
+```{r}
+set.seed(1)
+p=100
+n=1000
+betas=rnorm(p+1)*5
+X=matrix(rnorm(n*p), nrow=n, ncol=p)
+eps=rnorm(n, sd=0.5)
+
+Y=betas[1] + (X%*%betas[-1]) + eps
+plot(Y)
+
+```
+
+
+```{r}
+beta0_removed=betas[-1]
+mse=rep(0, 100)
+for (i in 1:100){
+  for (k in 1:p){
+    a=Y-betas[1] - X[, -k] %*% beta0_removed[-k]
+    betas[k+1]=lm(a~X[, k])$coef[2]
+    betas[1]=lm(a~X[, k])$coef[1]
+  }
+  mse[i]=mean((Y - X%*%betas[-1])^2)
+}
+
+
+plot(1:100, mse, type="b")
+
+```
+
+One iteration was enough to bring the error down.
+
+
+
+
+
+
+
+
+
+
+
+
+

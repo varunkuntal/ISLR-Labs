@@ -1,0 +1,289 @@
+---
+title: "Ch 10"
+output: html_document
+---
+
+Question(7)
+```{r}
+library(ISLR)
+set.seed(1)
+uscale=scale(USArrests)
+corr_dist = as.dist(1-cor(t(uscale)))
+eucl_dist = dist(uscale)^2
+summary(corr_dist/eucl_dist)
+```
+
+Question(8)
+part(a)
+```{r}
+set.seed(1)
+pr.out = prcomp(USArrests, scale=TRUE)
+prvar = pr.out$sdev^2
+pve_1 = prvar/sum(prvar) 
+pve_1
+```
+
+
+part(b)
+```{r}
+scaled_data = scale(USArrests)
+head(pr.out$x==(scaled_data %*% pr.out$rotation)) # To check if calculations correct
+```
+
+```{r}
+den = sum(apply(scaled_data^2, 2, sum)) # denominator for eq. 10.8
+
+```
+
+
+
+```{r}
+# Function to calculate numerator of eq 10.8
+var_exp = function(data, rotation){
+  dim1 = dim(data)[1]
+  dim2 = dim(data)[2]
+  vars = rep(0, dim2)
+  for (m in 1:dim2){
+    sum = 0
+    for (i in 1:dim1){
+      sum = sum + (data[i,] %*% rotation[,m])^2
+      
+    }
+    vars[m] = sum
+  }
+  return(vars)
+}
+  
+num = var_exp(scaled_data, pr.out$rotation)
+pve_2 = (num / den)
+print(pve_2)
+print(pve_1)
+isTRUE(all.equal(pve_2, pve_1))
+```
+
+Values are same using two methods.
+
+
+
+Question(9)
+part(a)
+```{r}
+hc.complete=hclust(dist(USArrests))
+plot(hc.complete, main="Complete Linkage", xlab="", ylab="", cex=0.8)
+```
+
+part(b)
+```{r}
+ct = cutree(hc.complete, k=3)
+for (i in 1:3){
+  print(i)
+  print(rownames( USArrests )[ct == i])
+  cat("\n\n")
+}
+```
+
+
+part(c)
+```{r}
+scaled_data = scale(USArrests)
+hc.compsc=hclust(dist(scaled_data))
+plot(hc.compsc, main="Complete Linkage (Scaled Version)", xlab="", ylab="", cex=0.8)
+```
+
+
+```{r}
+ct = cutree(hc.compsc, 3)
+for (i in 1:3){
+  print(i)
+  print(rownames( USArrests )[ct == i])
+  cat("\n\n")
+}
+```
+
+
+```{r}
+table(cutree(hc.compsc, 3), cutree(hc.complete, 3))
+```
+
+part(d)
+
+Clusters obtained from cutting tree in 3 have changed significantly as most states belong to third group now.
+
+Yes, variables should be scaled as the UrbanPop is % of population but other variables measure cases out of 1,00,000 population which is quite different value.
+
+
+
+
+Question(10)
+part(a)
+```{r}
+k = 3
+n = 20
+p = 50
+set.seed(1)
+dataset = rnorm(c(k*n*p))
+dim(dataset)=c(60,50)
+dataset[1:20,] = dataset[1:20,] + 0.65
+dataset[41:60,] = dataset[41:60,] - 0.65
+
+```
+
+
+part(b)
+```{r}
+pr.out=prcomp(dataset, scale=TRUE)
+plot(pr.out$x[,1], pr.out$x[,2], col=labels, pch=19)
+```
+
+
+part(c)
+```{r}
+km.out = kmeans(dataset, centers=3, nstart=25)
+km.out
+```
+
+```{r}
+plot(dataset, col=km.out$cluster, pch=19)
+```
+
+```{r}
+table(c(rep(3, 20), rep(1,20), rep(2,20)), km.out$cluster) #labelling the way clusters are predicted
+```
+
+
+error rate = 2 / 60 = 3.33%
+
+Clusters compare to true labels quite well
+
+part(d)
+```{r}
+km.out=kmeans(dataset, centers=2, nstart=25)
+km.out
+```
+
+```{r}
+plot(dataset, col=km.out$cluster, pch=19)
+```
+
+One of the class has been split between the two classes almost equallly.
+
+
+part(e)
+```{r}
+km.out=kmeans(dataset, centers=4, nstart=25)
+km.out
+```
+
+
+```{r}
+plot(dataset, col=km.out$cluster, pch=19)
+```
+
+Clusters have made 4 groups now.
+
+part(f)
+```{r}
+km.out=kmeans(data.frame(pr.out$x[,1], pr.out$x[,2]), centers=3, nstart=25)
+km.out
+```
+
+
+```{r}
+labels = c(rep(1, 20), rep(2,20), rep(3,20))
+table(labels, km.out$cluster)
+```
+
+
+Error rate = 2 / 60 = 3.33%
+
+
+
+```{r}
+plot(pr.out$x[,1], pr.out$x[,2], col=labels, pch=19)
+```
+
+part(g)
+```{r}
+scaled = scale(dataset)
+km.out = kmeans(scaled, centers=3, nstart=25)
+km.out
+```
+
+
+
+
+```{r}
+plot(pr.out$x[,1], pr.out$x[,2], col=km.out$cluster, pch=19)
+```
+
+```{r}
+labels = c(rep(2, 20), rep(3,20), rep(1,20))
+table(labels, km.out$cluster)
+```
+
+2 observations misclassified, so scaled version performs some worse.
+
+
+Question(11)
+part(a)
+```{r}
+Genes=read.csv("http://faculty.marshall.usc.edu/gareth-james/ISL/Ch10Ex11.csv", header=F)
+
+```
+
+part(b)
+```{r}
+dd = as.dist(1-cor((Genes)))
+hc.complete=hclust(dd)
+plot(hc.complete, main="Complete Linkage with Correlation-Based distance", xlab="", sub="")
+```
+
+```{r}
+dd = as.dist(1-cor((Genes)))
+hc.average=hclust(dd, method="average")
+plot(hc.average, main="Average Linkage with Correlation-Based distance", xlab="", sub="")
+
+```
+
+
+```{r}
+dd = as.dist(1-cor((Genes)))
+hc.single=hclust(dd, method="single")
+plot(hc.single, main="Single Linkage with Correlation-Based distance", xlab="", sub="")
+```
+
+Yes, 3 Groups in Average Linkage, 2 Groups in Single and Complete Linkage
+
+
+```{r}
+print( table( predicted=cutree( hc.complete, k=2 ), truth=c( rep(1,20), rep(2,20) ) ) )
+```
+
+
+part(c)
+```{r}
+
+predicted=cutree( hc.complete, k=2 ) 
+
+n1 = apply( Genes[ predicted==1, ], 2, length ) # the number of samples (number of patients in each cluster)
+n2 = apply( Genes[ predicted==2, ], 2, length )
+
+m1 = apply( Genes[ predicted==1, ], 2, mean ) # the means across the 1000 genes in each cluster
+m2 = apply( Genes[ predicted==2, ], 2, mean )
+
+v1 = apply( Genes[ predicted==1, ], 2, var ) # the variances across the 1000 genes in each cluster
+v2 = apply( Genes[ predicted==2, ], 2, var )
+
+pooled_variance = sqrt( v1 / n1 + v2 / n2 )
+
+t_value = ( m1 - m2 ) / pooled_variance 
+plot( t_value, xlab="gene index", ylab="unpaired t-value" )
+```
+
+```{r}
+t_value
+```
+
+
+
+
